@@ -429,9 +429,9 @@ volumes:
 
 如果您在使用过程中遇到问题，请通过以下方式获取帮助：
 
-- 提交 [Issue](https://github.com/your-username/rbac-template/issues)
-- 查看 [Wiki](https://github.com/your-username/rbac-template/wiki)
-- 发送邮件至: your-email@example.com
+- 提交 [Issue](https://github.com/Anning01/fastapi-rbac-template/issues)
+- 查看 [Wiki](https://github.com/Anning01/fastapi-rbac-template/wiki)
+- 发送邮件至: anningforchina@gmail.com
 
 ## ✅ TODO
 
