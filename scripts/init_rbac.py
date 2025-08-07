@@ -1,4 +1,15 @@
 """初始化RBAC系统的默认权限和角色"""
+
+import sys
+import os
+
+# 获取当前脚本所在目录
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# 项目根目录（假设 scripts 文件夹的父目录就是根目录）
+project_root = os.path.dirname(current_dir)
+# 将根目录加入 Python 路径
+sys.path.append(project_root)
+
 from config import settings
 from models.role import Permission, Role
 from models.user import User
