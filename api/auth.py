@@ -1,7 +1,6 @@
 from datetime import timedelta, datetime
-from http.client import HTTPException
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
 from config import settings

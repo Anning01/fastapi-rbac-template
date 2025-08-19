@@ -14,6 +14,7 @@ from tortoise.models import Model
 from tortoise.queryset import QuerySet
 
 from schemas.page import QueryParams, QueryBuilder
+from utils.exception import get_object_or_404
 
 T = TypeVar("T")
 Total = NewType("Total", int)
@@ -26,11 +27,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def __init__(self, model: Type[ModelType]):
         self.model = model
 
-    async def get(self, id: int, base_query: Optional[QuerySet] = None) -> ModelType:
-        if base_query:
-            base_query = base_query.filter(id=id)
-            return await base_query.first()
-        return await self.model.get(id=id)
+    async def get(self, id: int, base_query: Optional[QuerySet] = None, **kwargs) -> ModelType:
+        query_source = base_query if base_query is not None else self.model
+        return await get_object_or_404(query_source, id=id, **kwargs)
 
     async def list(
         self,

@@ -45,8 +45,6 @@ async def get_user(
     current_user: User = Depends(get_current_superuser_or_permission("user", "read"))
 ):
     user = await user_controller.get(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
     return ResponseSchema(data=user)
 
 
@@ -56,9 +54,6 @@ async def activate_user(
     current_user: User = Depends(get_current_superuser_or_permission("user", "manage"))
 ):
     user = await user_controller.get(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
-    
     user.is_active = True
     await user.save()
     return ResponseSchema(data=True)
@@ -70,9 +65,7 @@ async def deactivate_user(
     current_user: User = Depends(get_current_superuser_or_permission("user", "manage"))
 ):
     user = await user_controller.get(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
-    
+
     if user.is_superuser:
         raise HTTPException(status_code=400, detail="不能禁用超级用户")
     

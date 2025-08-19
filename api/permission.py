@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from tortoise.exceptions import IntegrityError
 
 from controllers.rbac import permission_controller
 from models.user import User
@@ -15,8 +16,11 @@ async def create_permission(
     permission_create: PermissionCreate,
     current_user: User = Depends(get_current_superuser_or_permission("permission", "create"))
 ):
-    permission = await permission_controller.create_permission(permission_create)
-    return ResponseSchema(data=PermissionResponse.model_validate(permission))
+    try:
+        permission = await permission_controller.create(permission_create)
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail="权限名称、代码或资源-操作组合已存在")
+    return ResponseSchema(data=permission)
 
 
 @router.get("/", summary="获取权限列表", response_model=ResponseSchema[PaginationResponse[PermissionResponse]])
@@ -33,8 +37,8 @@ async def get_permission(
     permission_id: int,
     current_user: User = Depends(get_current_superuser_or_permission("permission", "read"))
 ):
-    permission = await permission_controller.get_permission(permission_id)
-    return ResponseSchema(data=PermissionResponse.model_validate(permission))
+    permission = await permission_controller.get(permission_id)
+    return ResponseSchema(data=permission)
 
 
 @router.put("/{permission_id}", summary="更新权限", response_model=ResponseSchema[PermissionResponse])
@@ -43,8 +47,9 @@ async def update_permission(
     permission_update: PermissionUpdate,
     current_user: User = Depends(get_current_superuser_or_permission("permission", "update"))
 ):
-    permission = await permission_controller.update_permission(permission_id, permission_update)
-    return ResponseSchema(data=PermissionResponse.model_validate(permission))
+    permission = await permission_controller.get(permission_id)
+    instance = await permission_controller.update(permission, permission_update)
+    return ResponseSchema(data=instance)
 
 
 @router.delete("/{permission_id}", summary="删除权限", response_model=ResponseSchema[bool])
@@ -52,5 +57,6 @@ async def delete_permission(
     permission_id: int,
     current_user: User = Depends(get_current_superuser_or_permission("permission", "delete"))
 ):
-    result = await permission_controller.delete_permission(permission_id)
+    permission = await permission_controller.get(permission_id)
+    result = await permission_controller.remove(permission)
     return ResponseSchema(data=result)

@@ -1,4 +1,5 @@
-from typing import List, Optional
+from typing import List
+
 from fastapi import HTTPException
 from tortoise.exceptions import IntegrityError
 
@@ -73,41 +74,6 @@ class PermissionController(CRUDBase[Permission, PermissionCreate, PermissionUpda
     def __init__(self):
         super().__init__(model=Permission)
 
-    async def create_permission(self, obj_in: PermissionCreate) -> Permission:
-        try:
-            return await self.create(obj_in)
-        except IntegrityError:
-            raise HTTPException(status_code=400, detail="权限名称、代码或资源-操作组合已存在")
-
-    async def list_permissions(self, skip: int = 0, limit: int = 100) -> List[Permission]:
-        return await Permission.all().offset(skip).limit(limit)
-
-    async def get_permission(self, permission_id: int) -> Permission:
-        permission = await Permission.get_or_none(id=permission_id)
-        if not permission:
-            raise HTTPException(status_code=404, detail="权限不存在")
-        return permission
-
-    async def update_permission(self, permission_id: int, obj_in: PermissionUpdate) -> Permission:
-        permission = await self.get_permission(permission_id)
-        update_data = obj_in.model_dump(exclude_unset=True)
-        if update_data:
-            await permission.update_from_dict(update_data)
-            await permission.save()
-        return permission
-
-    async def delete_permission(self, permission_id: int) -> bool:
-        permission = await Permission.get_or_none(id=permission_id)
-        if not permission:
-            raise HTTPException(status_code=404, detail="权限不存在")
-        
-        # 检查是否有角色使用此权限
-        role_count = await permission.roles.all().count()
-        if role_count > 0:
-            raise HTTPException(status_code=400, detail="该权限正在被使用，无法删除")
-        
-        await permission.delete()
-        return True
 
 
 class UserRoleController:
