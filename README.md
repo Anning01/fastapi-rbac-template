@@ -30,10 +30,12 @@ rbac-template/
 │   ├── user.py            # 用户管理接口
 │   ├── role.py            # 角色管理接口
 │   ├── permission.py      # 权限管理接口
+│   ├── operation_log.py   # 操作日志接口
 │   └── user_role.py       # 用户角色管理接口
 ├── models/                 # 数据模型
 │   ├── _base.py           # 基础模型
 │   ├── user.py            # 用户模型
+│   ├── operation_log.py   # 操作日志模型
 │   └── role.py            # 角色权限模型
 ├── schemas/               # 数据验证模式
 │   ├── auth.py            # 认证相关模式
@@ -49,7 +51,10 @@ rbac-template/
 │   ├── deps.py            # 依赖注入
 │   └── redis_manager.py   # Redis 管理
 ├── controllers/           # 控制器层
-│   ├── rbac.py            # RBAC 控制器
+│   ├── permission.py      # 权限控制器
+│   ├── role.py            # 角色控制器
+│   ├── user_role.py       # 用户角色控制器
+│   ├── operation_log.py   # 操作日志控制器
 │   └── user.py            # 用户控制器
 ├── scripts/               # 脚本
 │   └── init_rbac.py       # RBAC 初始化脚本
@@ -229,10 +234,10 @@ has_role = await user.has_role("admin")
 - `DELETE /roles/{id}` - 删除角色
 
 #### 权限管理 (/api/permission)
-- `GET /permissions` - 获取权限列表
-- `POST /permissions` - 创建权限
-- `PUT /permissions/{id}` - 更新权限
-- `DELETE /permissions/{id}` - 删除权限
+- `GET /permission` - 获取权限列表
+- `POST /permission` - 创建权限
+- `PUT /permission/{id}` - 更新权限
+- `DELETE /permission/{id}` - 删除权限
 
 ### 预设权限和角色
 
@@ -270,6 +275,109 @@ make test           # 运行测试
 make format         # 格式化代码
 make lint           # 代码检查
 make clean          # 清理临时文件
+```
+
+### 操作日志功能
+
+系统内置了完整的操作日志功能，自动记录用户的重要操作：
+
+#### 功能特点
+- 🔍 **自动记录**：通过装饰器自动记录 API 操作
+- 📝 **详细信息**：记录操作前后数据、IP、用户代理等
+- 🎯 **灵活配置**：支持自定义日志记录策略
+- 📊 **完整追踪**：支持用户、模块、操作类型等多维度查询
+
+#### 使用方法
+
+##### 1. 装饰器自动记录
+
+```python
+from utils.smart_log import with_auto_log, create_smart_logger_dep
+from utils.auto_log import AutoLogger
+
+@router.post("/users", summary="创建用户")
+@with_auto_log("user")  # 指定操作模块
+async def create_user(
+    user_data: UserCreate,
+    auto_logger: AutoLogger = Depends(create_smart_logger_dep("user"))
+):
+    # 业务逻辑
+    user = await user_controller.create(user_data)
+    return user
+```
+
+##### 2. 手动记录操作
+
+```python
+from utils.operation_logger import OperationLogger
+
+# 在控制器或业务逻辑中手动记录
+await OperationLogger.log_operation(
+    user_id=current_user.id,
+    user_name=current_user.username,
+    module="user",
+    table_name="users",
+    record_id=user.id,
+    action="CREATE",
+    method="POST",
+    path="/api/users",
+    new_data={"username": "test", "nickname": "测试用户"},
+    ip_address="192.168.1.1"
+)
+```
+
+##### 3. 查询操作日志
+
+```python
+# 获取用户操作日志
+logs = await OperationLog.filter(user_id=user_id).order_by("-created_at")
+
+# 按模块查询
+logs = await OperationLog.filter(module="user").order_by("-created_at")
+
+# 按操作类型查询
+logs = await OperationLog.filter(action="CREATE").order_by("-created_at")
+```
+
+#### 日志字段说明
+
+| 字段 | 类型 | 描述 |
+|------|------|------|
+| user_id | int | 操作用户ID |
+| user_name | str | 操作用户名 |
+| module | str | 操作模块 |
+| table_name | str | 操作表名 |
+| record_id | int | 记录ID |
+| action | str | 操作类型（CREATE/UPDATE/DELETE） |
+| method | str | HTTP方法 |
+| path | str | 请求路径 |
+| old_data | json | 修改前数据 |
+| new_data | json | 修改后数据 |
+| ip_address | str | IP地址 |
+| user_agent | str | 用户代理 |
+| status | str | 操作状态（SUCCESS/FAILED） |
+| error_message | text | 错误信息 |
+
+### CRUD 增强功能
+
+#### JSON 字段搜索
+
+系统的 CRUD 基础类支持对 JSONB 字段进行深度搜索：
+
+##### 使用方法
+
+```python
+# 假设 User 模型有一个 JSON 字段 user_extra
+class User(AbstractBaseModel):
+    username = fields.CharField(max_length=50)
+    user_extra = fields.JSONField(null=True)  # 包含 {"name": "张三", "age": 25, "city": "北京"}
+
+# 在搜索时，可以通过 user_extra.name 来搜索 JSON 字段内的 name 属性 并且完全匹配 仅支持一级
+search_fields: list[str] = [
+    "nickname"
+]
+
+users = await user_controller.list(params, UserResponse, search_fields)
 ```
 
 ### 添加新的权限
@@ -314,88 +422,6 @@ def require_custom_permission():
     return decorator
 ```
 
-## 🧪 测试
-
-### 运行测试
-
-```bash
-# 使用 Makefile
-make test
-
-# 或直接运行
-uv run python test_api.py
-```
-
-### API 测试示例
-
-```python
-import httpx
-
-# 登录获取 token
-response = httpx.post("http://localhost:8000/api/auth/login", json={
-    "username": "admin",
-    "password": "123456"
-})
-token = response.json()["access_token"]
-
-# 使用 token 访问受保护的 API
-headers = {"Authorization": f"Bearer {token}"}
-response = httpx.get("http://localhost:8000/api/user/users", headers=headers)
-```
-
-## 🐳 Docker 部署
-
-### 构建和启动
-
-```bash
-# 构建镜像
-make docker-build
-
-# 启动服务
-make docker-up
-
-# 查看日志
-make logs
-
-# 停止服务
-make docker-down
-```
-
-### Docker Compose
-
-创建 `docker-compose.yml`：
-
-```yaml
-version: '3.8'
-services:
-  app:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgres://user:password@db:5432/rbac_db
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - db
-      - redis
-  
-  db:
-    image: postgres:15
-    environment:
-      - POSTGRES_DB=rbac_db
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-  
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-volumes:
-  postgres_data:
-```
 
 ## 📖 API 文档
 
@@ -438,10 +464,10 @@ volumes:
 - [ ] 添加单元测试
 - [ ] 添加 API 限流功能
 - [ ] 支持多租户
-- [ ] 添加审计日志
+- [x] 添加审计日志
 - [ ] 支持权限继承
 - [ ] 添加前端管理界面
-- [ ] 支持 OAuth 登录
+- [x] 支持 OAuth 登录
 - [ ] 添加数据备份恢复功能
 
 ---

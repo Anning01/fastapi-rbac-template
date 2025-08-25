@@ -34,7 +34,7 @@ async def list_users(
 ):
     # json内搜索使用.语法，并且完全匹配
     search_fields: list[str] = [
-        "nickname", "user_extra.name"
+        "nickname"
     ]
 
     users = await user_controller.list(params, UserResponse, search_fields)
