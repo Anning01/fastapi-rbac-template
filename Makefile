@@ -1,4 +1,4 @@
-.PHONY: help install install-dev add add-dev dev start stop clean test test-client pytest format lint docker-build docker-up docker-down logs
+.PHONY: help install install-dev add add-dev dev start stop clean test test-client pytest format lint db-init db-migrate db-upgrade
 
 # 默认目标
 help:
@@ -14,17 +14,11 @@ help:
 	@echo "  stop        - 停止服务"
 	@echo ""
 	@echo "  test        - 运行API测试"
-	@echo "  test-client - 运行客户端示例"
 	@echo "  pytest      - 运行pytest测试"
 	@echo "  format      - 格式化代码"
 	@echo "  lint        - 代码检查"
 	@echo ""
 	@echo "  clean       - 清理临时文件"
-	@echo ""
-	@echo "  docker-build - 构建Docker镜像"
-	@echo "  docker-up   - 启动Docker服务"
-	@echo "  docker-down - 停止Docker服务"
-	@echo "  logs        - 查看Docker日志"
 	@echo ""
 	@echo "  db-init     - 初始化数据库"
 	@echo "  db-migrate  - 运行数据库迁移"
@@ -131,22 +125,13 @@ clean:
 	find . -type d -name "__pycache__" -delete
 	find . -type d -name "*.egg-info" -exec rm -rf {} + || true
 
-# 运行API测试
+# 运行pytest测试
 test:
-	@echo "运行API测试..."
+	@echo "运行pytest测试..."
 	@if command -v uv >/dev/null 2>&1; then \
-		uv run python test_api.py; \
+		uv run pytest; \
 	else \
-		python test_api.py; \
-	fi
-
-# 运行客户端示例
-test-client:
-	@echo "运行客户端示例..."
-	@if command -v uv >/dev/null 2>&1; then \
-		uv run python client_example.py; \
-	else \
-		python client_example.py; \
+		pytest; \
 	fi
 
 # 运行pytest测试
@@ -162,39 +147,19 @@ pytest:
 format:
 	@echo "格式化代码..."
 	@if command -v uv >/dev/null 2>&1; then \
-		uv run black app/ && uv run isort app/; \
+		uv run black . --exclude='.venv|migrations' && uv run isort . --skip=.venv --skip=migrations; \
 	else \
-		black app/ && isort app/; \
+		black . --exclude='.venv|migrations' && isort . --skip=.venv --skip=migrations; \
 	fi
 
 # 代码检查
 lint:
 	@echo "检查代码..."
 	@if command -v uv >/dev/null 2>&1; then \
-		uv run flake8 app/ && uv run mypy app/; \
+		uv run flake8 . --exclude=.venv,migrations && uv run mypy . --exclude=.venv; \
 	else \
-		flake8 app/ && mypy app/; \
+		flake8 . --exclude=.venv,migrations && mypy . --exclude=.venv; \
 	fi
-
-# 构建Docker镜像
-docker-build:
-	@echo "构建Docker镜像..."
-	docker-compose build
-
-# 启动Docker服务
-docker-up:
-	@echo "启动Docker服务..."
-	docker-compose up -d
-
-# 停止Docker服务
-docker-down:
-	@echo "停止Docker服务..."
-	docker-compose down
-
-# 查看Docker日志
-logs:
-	@echo "查看应用日志..."
-	docker-compose logs -f app
 
 # 初始化数据库
 db-init:
@@ -231,6 +196,5 @@ setup: install
 		echo "已创建.env文件，请根据需要修改配置"; \
 	fi
 	@echo "设置完成！"
-	@echo "开启clash后运行 'uv sync' 安装依赖"
-	@echo "然后运行 'make docker-up' 启动服务"
-	@echo "或运行 'make dev' 启动开发服务器"
+	@echo "运行 'make dev' 启动开发服务器"
+	@echo "或运行 'make test' 运行测试"

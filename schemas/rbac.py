@@ -66,7 +66,7 @@ class UserRoleResponse(BaseModel):
     user_id: int = Field(..., description="用户ID")
     role: RoleResponse = Field(..., description="角色信息")
     is_active: bool = Field(..., description="是否启用")
-    created_at: str = Field(..., description="创建时间")
+    created_at: Optional[datetime] = Field(None, description="创建时间")
 
     class Config:
         from_attributes = True

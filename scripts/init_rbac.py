@@ -40,9 +40,7 @@ async def init_permissions():
         {"name": "管理权限", "code": "permission:manage", "resource": "permission", "action": "manage", "description": "权限管理权限"},
         
         # 系统管理权限
-        {"name": "系统配置", "code": "system:config", "resource": "system", "action": "config", "description": "系统配置管理"},
-        {"name": "系统监控", "code": "system:monitor", "resource": "system", "action": "monitor", "description": "系统监控权限"},
-        {"name": "日志查看", "code": "system:log", "resource": "system", "action": "log", "description": "查看系统日志"},
+        {"name": "日志查看", "code": "operation_log:read", "resource": "operation_log", "action": "config", "description": "后台操作日志"},
     ]
     
     created_permissions = []
@@ -69,7 +67,7 @@ async def init_roles():
             "name": "系统管理员",
             "code": "system_admin",
             "description": "系统管理员，拥有所有权限",
-            "permissions": ["user:manage", "role:manage", "permission:manage", "system:config", "system:monitor", "system:log"]
+            "permissions": ["user:manage", "role:manage", "permission:manage", "operation_log:read"]
         },
         {
             "name": "用户管理员",

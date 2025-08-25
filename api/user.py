@@ -5,8 +5,10 @@ from core.deps import get_current_active_user
 from models.user import User
 from schemas.auth import UserResponse, UserCreate
 from schemas.page import QueryParams, get_list_params
+from utils.auto_log import AutoLogger
 from utils.common import PaginationResponse, ResponseSchema
 from utils.rbac import get_current_superuser_or_permission
+from utils.smart_log import with_auto_log, create_smart_logger_dep
 
 router = APIRouter()
 
@@ -49,20 +51,24 @@ async def get_user(
 
 
 @router.put("/{user_id}/activate", summary="激活用户", response_model=ResponseSchema[bool])
+@with_auto_log("user")
 async def activate_user(
     user_id: int,
-    current_user: User = Depends(get_current_superuser_or_permission("user", "manage"))
+    current_user: User = Depends(get_current_superuser_or_permission("user", "manage")),
+    auto_logger: AutoLogger = Depends(create_smart_logger_dep("user"))
 ):
     user = await user_controller.get(user_id)
     user.is_active = True
     await user.save()
-    return ResponseSchema(data=True)
+    return ResponseSchema(data=True, message=f"用户{user.id}激活成功")
 
 
 @router.put("/{user_id}/deactivate", summary="禁用用户", response_model=ResponseSchema[bool])
+@with_auto_log("user")
 async def deactivate_user(
     user_id: int,
-    current_user: User = Depends(get_current_superuser_or_permission("user", "manage"))
+    current_user: User = Depends(get_current_superuser_or_permission("user", "manage")),
+    auto_logger: AutoLogger = Depends(create_smart_logger_dep("user"))
 ):
     user = await user_controller.get(user_id)
 
@@ -71,5 +77,5 @@ async def deactivate_user(
     
     user.is_active = False
     await user.save()
-    return ResponseSchema(data=True)
+    return ResponseSchema(data=True, message=f"用户{user.id}禁用成功")
 
